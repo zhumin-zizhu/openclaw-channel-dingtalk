@@ -387,7 +387,7 @@ describe('gateway inbound callback pipeline', () => {
         expect(shared.socketCallBackResponseMock).not.toHaveBeenCalledWith('stream_msg_inflight_2', { success: true });
     });
 
-    it('acknowledges in-flight duplicate callbacks in async mode to avoid pointless retries', async () => {
+    it('keeps async in-flight lock after listener returns so duplicates are still blocked', async () => {
         shared.isMessageProcessedMock.mockReturnValue(false);
         let resolveFirst: (() => void) | undefined;
         shared.handleDingTalkMessageMock.mockImplementationOnce(
@@ -416,20 +416,25 @@ describe('gateway inbound callback pipeline', () => {
             headers: { messageId: 'stream_msg_async_inflight_1' },
             data: payloadData,
         });
+        await first;
+
+        expect(shared.handleDingTalkMessageMock).toHaveBeenCalledTimes(1);
+        expect(shared.socketCallBackResponseMock).toHaveBeenCalledWith('stream_msg_async_inflight_1', { success: true });
+
         const second = shared.listeners.TOPIC_ROBOT?.({
             headers: { messageId: 'stream_msg_async_inflight_2' },
             data: payloadData,
         });
 
-        await Promise.resolve();
+        await second;
 
         expect(shared.handleDingTalkMessageMock).toHaveBeenCalledTimes(1);
-        expect(shared.socketCallBackResponseMock).toHaveBeenCalledWith('stream_msg_async_inflight_1', { success: true });
         expect(shared.socketCallBackResponseMock).toHaveBeenCalledWith('stream_msg_async_inflight_2', { success: true });
+        expect(shared.markMessageProcessedMock).not.toHaveBeenCalled();
 
         resolveFirst?.();
-        await first;
-        await second;
+        await Promise.resolve();
+        await Promise.resolve();
 
         expect(shared.markMessageProcessedMock).toHaveBeenCalledWith('robot_1:msg_async_inflight');
     });
