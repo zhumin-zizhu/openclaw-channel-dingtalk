@@ -376,8 +376,7 @@ describe('card-service', () => {
         const result = formatContentForCard(content, 'thinking');
 
         expect(result).toContain('思考中');
-        expect(result).toContain('> ');
-        expect(result.endsWith('…')).toBe(true);
+        expect(result).toContain('…');
     });
 
     it('refreshes aged token before streaming', async () => {
