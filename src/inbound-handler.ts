@@ -10,7 +10,8 @@ import {
   getCardContentByProcessQueryKey,
   isCardInTerminalState,
 } from "./card-service";
-import { resolveGroupConfig } from "./config";
+import { classifyAckReactionEmoji } from "./ack-reaction-classifier";
+import { resolveAckReactionSetting, resolveGroupConfig } from "./config";
 import { formatGroupMembers, noteGroupMember } from "./group-members-store";
 import { setCurrentLogger } from "./logger-context";
 import {
@@ -49,7 +50,6 @@ import { createCardDraftController } from "./card-draft-controller";
 import { acquireSessionLock } from "./session-lock";
 import { cacheInboundDownloadCode, getCachedDownloadCode } from "./quoted-msg-cache";
 import { downloadGroupFile, getUnionIdByStaffId, resolveQuotedFile } from "./quoted-file-service";
-import classifySentenceWithEmoji from "./classifyWithEmoji";
 import {
   formatSessionAliasBoundReply,
   formatSessionAliasClearedReply,
@@ -75,10 +75,11 @@ import {
   listScopedLearningRules,
   resolveManualForcedReply,
 } from "./feedback-learning-service";
+import { attachNativeAckReaction, recallNativeAckReactionWithRetry } from "./ack-reaction-service";
 import { formatDingTalkErrorPayloadLog, maskSensitiveData } from "./utils";
 
 const DEFAULT_PROACTIVE_HINT_COOLDOWN_HOURS = 24;
-const DEFAULT_THINKING_MESSAGE = "🤔 思考中，请稍候...";
+const MIN_THINKING_REACTION_VISIBLE_MS = 1200;
 const ATTACHMENT_TEXT_PREFIX = "[附件内容摘录]";
 const proactiveHintLastSentAt = new Map<string, number>();
 
@@ -1254,41 +1255,42 @@ export async function handleDingTalkMessage(params: HandleDingTalkMessageParams)
 
   log?.info?.(`[DingTalk] Inbound: from=${senderName} text="${content.text.slice(0, 50)}..."`);
 
+  const ackReaction =
+    typeof dingtalkConfig.ackReaction === "string"
+      ? dingtalkConfig.ackReaction.trim()
+      : resolveAckReactionSetting({
+          cfg,
+          accountId,
+          agentId: route.agentId,
+        });
+  const resolvedAckReaction =
+    ackReaction === "emoji" ? classifyAckReactionEmoji(content.text).emoji : ackReaction;
+  const shouldAttachAckReaction = Boolean(resolvedAckReaction);
+  let ackReactionAttached = false;
+  let ackReactionAttachedAt = 0;
+
+  if (shouldAttachAckReaction) {
+    ackReactionAttached = await attachNativeAckReaction(
+      dingtalkConfig,
+      {
+        msgId: data.msgId,
+        conversationId: groupId,
+        reactionName: resolvedAckReaction,
+      },
+      log,
+    );
+    if (ackReactionAttached) {
+      ackReactionAttachedAt = Date.now();
+    }
+  }
+
   // Serialize dispatchReply + card finalize per session to prevent the runtime
   // from receiving concurrent dispatch calls on the same session key, which
   // causes empty replies for all but the first caller.
   const releaseSessionLock = await acquireSessionLock(route.sessionKey);
   try {
-    // 4) Optional "thinking..." feedback (markdown mode only).
-    if (dingtalkConfig.showThinking !== false) {
-      let thinkingText = (dingtalkConfig.thinkingMessage || "").trim() || DEFAULT_THINKING_MESSAGE;
-      if (thinkingText === "emoji") {
-        thinkingText = classifySentenceWithEmoji(content.text).emoji;
-      }
-      if (useCardMode && currentAICard) {
-        log?.debug?.(
-          "[DingTalk] messageType=card: showThinking/thinkingMessage do not send standalone hints; thinking is streamed in card mode.",
-        );
-      } else {
-        try {
-          const sendResult = await sendMessage(dingtalkConfig, to, thinkingText, {
-            sessionWebhook,
-            atUserId: !isDirect ? senderId : null,
-            log,
-            accountId,
-            storePath,
-            conversationId: groupId,
-          });
-          if (!sendResult.ok) {
-            throw new Error(sendResult.error || "Thinking message send failed");
-          }
-        } catch (err: any) {
-          log?.debug?.(`[DingTalk] Thinking message failed: ${err.message}`);
-          if (err?.response?.data !== undefined) {
-            log?.debug?.(formatDingTalkErrorPayloadLog("inbound.thinkingMessage", err.response.data));
-          }
-        }
-      }
+    if (!ackReactionAttached && shouldAttachAckReaction) {
+      log?.debug?.("[DingTalk] Native ack reaction unavailable; skipping fallback.");
     }
 
     const controller = useCardMode && currentAICard
@@ -1550,5 +1552,23 @@ export async function handleDingTalkMessage(params: HandleDingTalkMessageParams)
     }
   } finally {
     releaseSessionLock();
+    if (ackReactionAttached) {
+      void (async () => {
+        const elapsedMs = ackReactionAttachedAt > 0 ? Date.now() - ackReactionAttachedAt : 0;
+        const remainingVisibleMs = MIN_THINKING_REACTION_VISIBLE_MS - elapsedMs;
+        if (remainingVisibleMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, remainingVisibleMs));
+        }
+        await recallNativeAckReactionWithRetry(
+          dingtalkConfig,
+          {
+            msgId: data.msgId,
+            conversationId: groupId,
+            reactionName: resolvedAckReaction,
+          },
+          log,
+        );
+      })();
+    }
   }
 }
