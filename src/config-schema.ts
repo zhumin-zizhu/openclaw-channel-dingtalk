@@ -132,9 +132,10 @@ const DingTalkAccountConfigShape = {
   /** Whether to convert markdown tables to plain text for better rendering on some clients (default: true) */
   convertMarkdownTables: z.boolean().optional().default(true),
 
-  /** Whether to @mention the sender after card finalization in group chats (default: false).
-   *  Useful when AI response takes a while — the @mention triggers a notification so the sender doesn't miss the reply. */
-  cardAtSender: z.boolean().optional().default(false),
+  /** @mention the sender after card finalization in group chats.
+   *  Set to a non-empty string (e.g. "✅ 回复完成") to enable — the value is used as the message text.
+   *  Leave empty or omit to disable. */
+  cardAtSender: z.string().optional(),
 } as const;
 
 const DingTalkAccountConfigSchema = z.object(DingTalkAccountConfigShape);

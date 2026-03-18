@@ -3919,7 +3919,7 @@ describe('inbound-handler', () => {
             accountId: 'main',
             sessionWebhook: 'https://session.webhook',
             log: undefined,
-            dingtalkConfig: { dmPolicy: 'open', messageType: 'card', cardAtSender: true } as any,
+            dingtalkConfig: { dmPolicy: 'open', messageType: 'card', cardAtSender: '✅ 回复完成' } as any,
             data: {
                 msgId: 'mid_at_group', msgtype: 'text', text: { content: 'hello' },
                 conversationType: '2', conversationId: 'cid_group_1', senderId: 'user_1',
@@ -3976,7 +3976,7 @@ describe('inbound-handler', () => {
             accountId: 'main',
             sessionWebhook: 'https://session.webhook',
             log: undefined,
-            dingtalkConfig: { dmPolicy: 'open', messageType: 'card', cardAtSender: true } as any,
+            dingtalkConfig: { dmPolicy: 'open', messageType: 'card', cardAtSender: '✅ 回复完成' } as any,
             data: {
                 msgId: 'mid_at_dm', msgtype: 'text', text: { content: 'hello' },
                 conversationType: '1', conversationId: 'cid_ok', senderId: 'user_1',
@@ -4005,7 +4005,7 @@ describe('inbound-handler', () => {
             accountId: 'main',
             sessionWebhook: 'https://session.webhook',
             log: undefined,
-            dingtalkConfig: { dmPolicy: 'open', messageType: 'card', cardAtSender: true } as any,
+            dingtalkConfig: { dmPolicy: 'open', messageType: 'card', cardAtSender: '✅ 回复完成' } as any,
             data: {
                 msgId: 'mid_at_err', msgtype: 'text', text: { content: 'hello' },
                 conversationType: '2', conversationId: 'cid_group_1', senderId: 'user_1',
