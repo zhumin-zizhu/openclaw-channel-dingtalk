@@ -174,7 +174,7 @@ export async function sendProactiveTextOrMarkdown(
 
   // In card mode, use card API to avoid oToMessages/batchSend permission requirement.
   const messageType = config.messageType || "markdown";
-  if (messageType === "card" && config.cardTemplateId) {
+  if (messageType === "card" && config.cardTemplateId && !options.forceMarkdown) {
     log?.debug?.(
       `[DingTalk] Using card API for proactive message to user ${resolvedTarget}${proactiveRiskTag}`,
     );
@@ -492,7 +492,7 @@ export async function sendMessage(
     const messageType = config.messageType || "markdown";
     const log = options.log || getLogger();
 
-    if (messageType === "card" && options.card) {
+    if (messageType === "card" && options.card && !options.forceMarkdown) {
       const card = options.card;
       if (isCardInTerminalState(card.state)) {
         if (options.sessionWebhook) {

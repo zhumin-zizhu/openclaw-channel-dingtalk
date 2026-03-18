@@ -3684,8 +3684,10 @@ describe('inbound-handler', () => {
         const debugLogs = log.debug.mock.calls.map((args: unknown[]) => String(args[0]));
         expect(debugLogs.some((msg) => msg.includes('Card failed during streaming, sending markdown fallback'))).toBe(true);
 
+        // Fallback uses sendMessage with forceMarkdown to skip card creation
+        // while preserving journal writes.
         const fallbackCalls = shared.sendMessageMock.mock.calls.filter(
-            (call: any[]) => !call[3]?.card && !call[3]?.cardUpdateMode
+            (call: any[]) => call[3]?.forceMarkdown === true
         );
         expect(fallbackCalls.length).toBeGreaterThanOrEqual(1);
         expect(fallbackCalls[0][2]).toBe('complete final answer');
