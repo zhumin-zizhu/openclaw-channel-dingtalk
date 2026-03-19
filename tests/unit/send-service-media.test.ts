@@ -41,6 +41,7 @@ const mockedGetVoiceDurationMs = vi.mocked(getVoiceDurationMs);
 describe('send-service media branches', () => {
     beforeEach(() => {
         mockedAxios.mockReset();
+        (mockedAxios as any).isAxiosError = (err: unknown) => Boolean((err as { isAxiosError?: boolean })?.isAxiosError);
         mockedUploadMedia.mockReset();
         mockedGetVoiceDurationMs.mockReset();
         mockedGetVoiceDurationMs.mockResolvedValue(1000);
@@ -179,6 +180,42 @@ describe('send-service media branches', () => {
                 delivery: expect.objectContaining({
                     processQueryKey: 'q_voice_2',
                     kind: 'proactive-media',
+                }),
+            }),
+        );
+    });
+
+    it('persists proactive media fallback text without emoji prefix', async () => {
+        mockedUploadMedia.mockResolvedValueOnce('media_file_fallback');
+        mockedAxios
+            .mockRejectedValueOnce({
+                message: 'upload send failed',
+                response: { status: 500, statusText: 'Server Error', data: { code: 'system.err' } },
+                isAxiosError: true,
+            })
+            .mockResolvedValueOnce({ data: { processQueryKey: 'fallback_q_1' } } as any);
+
+        const result = await sendProactiveMedia(
+            { clientId: 'id', clientSecret: 'sec', robotCode: 'id' } as any,
+            'user_123',
+            '/tmp/a.pdf',
+            'file',
+            {
+                accountId: 'main',
+                storePath: '/tmp/sessions.json',
+            } as any,
+        );
+
+        expect(result.ok).toBe(true);
+        expect(messageContextMocks.upsertOutboundMessageContextMock).toHaveBeenCalledWith(
+            expect.objectContaining({
+                storePath: '/tmp/sessions.json',
+                accountId: 'main',
+                conversationId: 'user_123',
+                text: '媒体发送失败，兜底链接/路径：/tmp/a.pdf',
+                messageType: 'outbound-proactive-fallback',
+                delivery: expect.objectContaining({
+                    processQueryKey: 'fallback_q_1',
                 }),
             }),
         );

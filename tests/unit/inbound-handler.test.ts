@@ -1551,6 +1551,56 @@ describe("inbound-handler", () => {
     );
   });
 
+  it("logs legacy quoteContent when no resolvable quotedRef can be built", async () => {
+    const runtime = buildRuntime();
+    runtime.channel.session.resolveStorePath = vi
+      .fn()
+      .mockReturnValueOnce("/tmp/dm-account-store.json")
+      .mockReturnValueOnce("/tmp/dm-agent-store.json");
+    const log = {
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+    };
+    shared.getRuntimeMock.mockReturnValueOnce(runtime);
+    shared.extractMessageContentMock.mockReturnValueOnce({
+      text: "当前消息",
+      messageType: "text",
+    });
+
+    await handleDingTalkMessage({
+      cfg: {},
+      accountId: "main",
+      sessionWebhook: "https://session.webhook",
+      log,
+      dingtalkConfig: { dmPolicy: "open", messageType: "markdown" } as any,
+      data: {
+        msgId: "m_legacy_quote_1",
+        msgtype: "text",
+        text: { content: "当前消息" },
+        content: { quoteContent: "旧引用正文" },
+        conversationType: "1",
+        conversationId: "cid_ok",
+        senderId: "user_1",
+        chatbotUserId: "bot_1",
+        sessionWebhook: "https://session.webhook",
+        createAt: Date.now(),
+      },
+    } as any);
+
+    expect(log.debug).toHaveBeenCalledWith(
+      expect.stringContaining("Legacy quoteContent present without resolvable quotedRef"),
+    );
+    expect(mockedUpsertInboundMessageContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        msgId: "m_legacy_quote_1",
+        text: "当前消息",
+        quotedRef: undefined,
+      }),
+    );
+  });
+
   it("writes normalized inbound journal text without quoted prefix noise", async () => {
     const runtime = buildRuntime();
     runtime.channel.session.resolveStorePath = vi
