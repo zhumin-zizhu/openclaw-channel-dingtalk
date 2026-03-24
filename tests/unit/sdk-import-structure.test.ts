@@ -40,10 +40,12 @@ describe("plugin-sdk import structure", () => {
         }
     });
 
-    it("pins the local dev dependency to the stable openclaw 2026.3.22 release", () => {
+    it("does not keep openclaw in devDependencies where plugin install omits it", () => {
         const packageJson = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8")) as {
             devDependencies?: Record<string, string>;
+            peerDependencies?: Record<string, string>;
         };
-        expect(packageJson.devDependencies?.openclaw).toBe("2026.3.22");
+        expect(packageJson.devDependencies?.openclaw).toBeUndefined();
+        expect(packageJson.peerDependencies?.openclaw).toBeDefined();
     });
 });
