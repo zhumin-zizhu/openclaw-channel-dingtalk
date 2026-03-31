@@ -271,6 +271,7 @@ function buildGroupTurnContextPrompt(params: {
 
 type ReplyStreamPayload = {
   text?: string;
+  isReasoning?: boolean;
 };
 
 type ReplyChunkInfo = {
@@ -1533,10 +1534,12 @@ export async function handleDingTalkMessage(params: HandleDingTalkMessageParams)
             }
             try {
               const mediaUrls = extractMediaUrls(payload);
+              const richPayload = payload as ReplyStreamPayload & { isReasoning?: boolean };
               await strategy.deliver({
                 text: payload.text,
                 mediaUrls,
                 kind: (info?.kind as DeliverPayload["kind"]) || "block",
+                isReasoning: richPayload.isReasoning === true,
               });
             } catch (err: unknown) {
               log?.error?.(`[DingTalk] Reply failed: ${getErrorMessage(err)}`);
