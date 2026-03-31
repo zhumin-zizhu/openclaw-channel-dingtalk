@@ -10,6 +10,7 @@
   <a href="https://www.npmjs.com/package/@soimy/dingtalk"><img alt="npm downloads" src="https://img.shields.io/npm/dm/%40soimy%2Fdingtalk"></a>
   <a href="https://github.com/soimy/openclaw-channel-dingtalk/actions/workflows/docs-pages.yml"><img alt="Docs" src="https://img.shields.io/github/actions/workflow/status/soimy/openclaw-channel-dingtalk/docs-pages.yml?branch=main&label=Docs"></a>
   <a href="https://github.com/soimy/openclaw-channel-dingtalk/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/soimy/openclaw-channel-dingtalk"></a>
+  <a href="https://github.com/soimy/openclaw-channel-dingtalk/blob/main/CITATION.cff"><img alt="Citation" src="https://img.shields.io/badge/Citation-CITATION.cff-1277B5"></a>
 </p>
 
 针对 OpenClaw 的钉钉企业内部机器人 Channel 渠道插件，使用 Stream 模式，无需公网 IP。
@@ -32,6 +33,11 @@
 - 参与贡献入口：[docs/contributor/index.md](docs/contributor/index.md)
 - 发布记录：[docs/releases/index.md](docs/releases/index.md)
 - 英文入口：[docs/en/index.md](docs/en/index.md)
+
+## 引用与署名
+
+- GitHub / 机器可读引用元数据：[CITATION.cff](https://github.com/soimy/openclaw-channel-dingtalk/blob/main/CITATION.cff)
+- 维护者对复用、引用与 AI 协作场景的署名请求：[docs/contributor/citation-and-attribution.md](docs/contributor/citation-and-attribution.md)
 
 ## 安装
 
@@ -180,4 +186,4 @@ pnpm test
 
 ## 许可
 
-[MIT](LICENSE)
+[MIT](https://github.com/soimy/openclaw-channel-dingtalk/blob/main/LICENSE)

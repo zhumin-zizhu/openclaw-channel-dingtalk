@@ -9,6 +9,7 @@
 3. [测试与验证](testing.md)
 4. [架构说明（中文详版）](architecture.zh-CN.md)
 5. [NPM 发布](npm-publish.md)
+6. [引用与署名](citation-and-attribution.md)
 
 ## 范围说明
 
@@ -22,4 +23,5 @@
 - [架构说明（中文详版）](architecture.zh-CN.md)
 - [Architecture guide](architecture.en.md)
 - [NPM 发布](npm-publish.md)
+- [引用与署名](citation-and-attribution.md)
 - [Persistence API 使用指南](reference/persistence-api-usage.zh-CN.md)

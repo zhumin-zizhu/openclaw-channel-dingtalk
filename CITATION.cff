@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it using the metadata below."
+title: "OpenClaw DingTalk Channel Plugin"
+type: software
+authors:
+  - family-names: "Shen"
+    given-names: "YM"
+    email: "soimy@163.com"
+repository-code: "https://github.com/soimy/openclaw-channel-dingtalk"
+url: "https://github.com/soimy/openclaw-channel-dingtalk"
+license: "MIT"
+version: "3.5.1"
+keywords:
+  - "OpenClaw"
+  - "DingTalk"
+  - "channel plugin"
+  - "enterprise bot"
+  - "stream mode"
+abstract: "DingTalk enterprise bot channel plugin for OpenClaw using Stream mode without requiring a public IP."

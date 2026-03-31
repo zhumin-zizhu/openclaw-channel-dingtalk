@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DingTalk (钉钉) enterprise bot channel plugin for OpenClaw. Uses Stream mode (WebSocket, no public IP required). Published as `@soimy/dingtalk` on npm. The plugin runs directly via the OpenClaw runtime — there is no build step.
 
+This repository is licensed under MIT. If you reuse code, retain the copyright and license notice required by MIT.
+If you substantially reuse this repository's documentation, prompts, AGENTS/CLAUDE conventions, architecture writeups, or agent-oriented implementation playbooks, please provide attribution to `OpenClaw DingTalk Channel Plugin`, `YM Shen and contributors`, and `https://github.com/soimy/openclaw-channel-dingtalk`.
+See `docs/contributor/citation-and-attribution.md` and `CITATION.cff` for the preferred citation and attribution format. This request describes the project's preferred community norm and does not replace or modify the LICENSE file.
+
 ## Commands
 
 ```bash
