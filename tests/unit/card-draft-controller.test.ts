@@ -9,6 +9,9 @@ vi.mock("../../src/card-service", async (importOriginal) => {
     return {
         ...actual,
         streamAICard: vi.fn(),
+        updateAICardBlockList: vi.fn(),
+        streamAICardContent: vi.fn(),
+        clearAICardStreamingContent: vi.fn(),
     };
 });
 
@@ -26,26 +29,26 @@ function makeCard(overrides: Partial<AICardInstance> = {}): AICardInstance {
 }
 
 describe("card-draft-controller", () => {
-    const streamAICardMock = vi.mocked(cardService.streamAICard);
+    const updateAICardBlockListMock = vi.mocked(cardService.updateAICardBlockList);
 
     beforeEach(() => {
         vi.useFakeTimers();
-        streamAICardMock.mockReset();
-        streamAICardMock.mockResolvedValue(undefined);
+        updateAICardBlockListMock.mockReset();
+        updateAICardBlockListMock.mockResolvedValue(undefined);
     });
 
     afterEach(() => {
         vi.useRealTimers();
     });
 
-    it("updateAnswer sends answer text via streamAICard", async () => {
+    it("updateAnswer sends answer text via updateAICardBlockList", async () => {
         const card = makeCard();
         const ctrl = createCardDraftController({ card, throttleMs: 0 });
 
         ctrl.updateAnswer("Hello world");
         await vi.advanceTimersByTimeAsync(0);
 
-        expect(streamAICardMock).toHaveBeenCalledWith(card, "Hello world", false, undefined);
+        expect(updateAICardBlockListMock).toHaveBeenCalledWith(card, "Hello world", undefined);
     });
 
     it("updateReasoning sends a rendered thinking block", async () => {
@@ -55,7 +58,7 @@ describe("card-draft-controller", () => {
         ctrl.updateReasoning("Analyzing...");
         await vi.advanceTimersByTimeAsync(0);
 
-        const sentContent = streamAICardMock.mock.calls[0]?.[1] as string;
+        const sentContent = updateAICardBlockListMock.mock.calls[0]?.[1] as string;
         expect(sentContent).toContain("> Analyzing...");
     });
 
@@ -65,17 +68,17 @@ describe("card-draft-controller", () => {
 
         ctrl.updateReasoning("think");
         await vi.advanceTimersByTimeAsync(0);
-        expect(streamAICardMock).toHaveBeenCalledTimes(1);
+        expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
 
-        const reasoningContent = streamAICardMock.mock.calls[0]?.[1] as string;
+        const reasoningContent = updateAICardBlockListMock.mock.calls[0]?.[1] as string;
         expect(reasoningContent).toContain("think");
 
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
 
         ctrl.updateAnswer("answer");
         await vi.advanceTimersByTimeAsync(0);
-        expect(streamAICardMock).toHaveBeenCalledTimes(1);
-        const rendered = streamAICardMock.mock.calls[0]?.[1] as string;
+        expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+        const rendered = updateAICardBlockListMock.mock.calls[0]?.[1] as string;
         expect(rendered).toContain("> think");
         expect(rendered).toContain("answer");
     });
@@ -86,11 +89,11 @@ describe("card-draft-controller", () => {
 
         ctrl.updateAnswer("answer");
         await vi.advanceTimersByTimeAsync(0);
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
 
         ctrl.updateReasoning("late-reasoning");
         await vi.advanceTimersByTimeAsync(300);
-        expect(streamAICardMock).not.toHaveBeenCalled();
+        expect(updateAICardBlockListMock).not.toHaveBeenCalled();
     });
 
     it("late completed thinking blocks are inserted before the current answer in the same segment", async () => {
@@ -140,7 +143,7 @@ describe("card-draft-controller", () => {
     it("reasoning -> answer switch seals only the latest thinking snapshot into the timeline", async () => {
         const sent: string[] = [];
         let resolveInFlight!: () => void;
-        streamAICardMock.mockImplementation(async (_card, content) => {
+        updateAICardBlockListMock.mockImplementation(async (_card, content) => {
             sent.push(content);
             if (sent.length === 1) {
                 await new Promise<void>((r) => { resolveInFlight = r; });
@@ -168,7 +171,7 @@ describe("card-draft-controller", () => {
     });
 
     it("isFailed becomes true when streamAICard throws", async () => {
-        streamAICardMock.mockRejectedValueOnce(new Error("API down"));
+        updateAICardBlockListMock.mockRejectedValueOnce(new Error("API down"));
 
         const card = makeCard();
         const ctrl = createCardDraftController({ card, throttleMs: 0 });
@@ -182,7 +185,7 @@ describe("card-draft-controller", () => {
     });
 
     it("updates are ignored after isFailed", async () => {
-        streamAICardMock.mockRejectedValueOnce(new Error("fail"));
+        updateAICardBlockListMock.mockRejectedValueOnce(new Error("fail"));
 
         const card = makeCard();
         const ctrl = createCardDraftController({ card, throttleMs: 0 });
@@ -191,10 +194,10 @@ describe("card-draft-controller", () => {
         await vi.advanceTimersByTimeAsync(0);
         expect(ctrl.isFailed()).toBe(true);
 
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
         ctrl.updateAnswer("second");
         await vi.advanceTimersByTimeAsync(300);
-        expect(streamAICardMock).not.toHaveBeenCalled();
+        expect(updateAICardBlockListMock).not.toHaveBeenCalled();
     });
 
     it("updates are ignored after stop", async () => {
@@ -203,20 +206,20 @@ describe("card-draft-controller", () => {
 
         ctrl.updateAnswer("before");
         await vi.advanceTimersByTimeAsync(0);
-        expect(streamAICardMock).toHaveBeenCalledTimes(1);
+        expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
 
         ctrl.stop();
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
 
         ctrl.updateAnswer("after");
         await vi.advanceTimersByTimeAsync(300);
-        expect(streamAICardMock).not.toHaveBeenCalled();
+        expect(updateAICardBlockListMock).not.toHaveBeenCalled();
     });
 
     it("flush drains all pending and waits for in-flight", async () => {
         const sent: string[] = [];
         let resolveInFlight!: () => void;
-        streamAICardMock.mockImplementation(async (_card, content) => {
+        updateAICardBlockListMock.mockImplementation(async (_card, content) => {
             sent.push(content);
             if (sent.length === 1) {
                 await new Promise<void>((r) => { resolveInFlight = r; });
@@ -261,7 +264,7 @@ describe("card-draft-controller", () => {
         await vi.advanceTimersByTimeAsync(0);
         expect(ctrl.getLastContent()).toBe("good");
 
-        streamAICardMock.mockRejectedValueOnce(new Error("fail"));
+        updateAICardBlockListMock.mockRejectedValueOnce(new Error("fail"));
         ctrl.updateAnswer("bad");
         await vi.advanceTimersByTimeAsync(0);
 
@@ -271,7 +274,7 @@ describe("card-draft-controller", () => {
     it("waitForInFlight resolves after current in-flight completes", async () => {
         let resolveInFlight!: () => void;
         let inFlightDone = false;
-        streamAICardMock.mockImplementation(async () => {
+        updateAICardBlockListMock.mockImplementation(async () => {
             await new Promise<void>((r) => { resolveInFlight = r; });
             inFlightDone = true;
         });
@@ -295,16 +298,15 @@ describe("card-draft-controller", () => {
 
         ctrl.updateAnswer("Turn 1 content");
         await vi.advanceTimersByTimeAsync(0);
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
 
         ctrl.notifyNewAssistantTurn();
         ctrl.updateAnswer("Turn 2");
         await vi.advanceTimersByTimeAsync(0);
 
-        expect(streamAICardMock).toHaveBeenCalledWith(
+        expect(updateAICardBlockListMock).toHaveBeenCalledWith(
             card,
             "Turn 1 content\nTurn 2",
-            false,
             undefined,
         );
     });
@@ -315,16 +317,15 @@ describe("card-draft-controller", () => {
 
         ctrl.updateReasoning("thinking...");
         await vi.advanceTimersByTimeAsync(0);
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
 
         ctrl.notifyNewAssistantTurn();
         ctrl.updateAnswer("first answer");
         await vi.advanceTimersByTimeAsync(0);
 
-        expect(streamAICardMock).toHaveBeenCalledWith(
+        expect(updateAICardBlockListMock).toHaveBeenCalledWith(
             card,
             "first answer",
-            false,
             undefined,
         );
     });
@@ -335,14 +336,32 @@ describe("card-draft-controller", () => {
 
         ctrl.updateAnswer("answer");
         await vi.advanceTimersByTimeAsync(0);
-        streamAICardMock.mockClear();
+        updateAICardBlockListMock.mockClear();
 
         ctrl.notifyNewAssistantTurn();
         ctrl.updateReasoning("new thinking");
         await vi.advanceTimersByTimeAsync(0);
 
-        const sentContent = streamAICardMock.mock.calls[0]?.[1] as string;
+        const sentContent = updateAICardBlockListMock.mock.calls[0]?.[1] as string;
         expect(sentContent).toContain("> new thinking");
+    });
+
+    it("notifyNewAssistantTurn can discard the active answer draft before sealing the turn", async () => {
+        const card = makeCard();
+        const ctrl = createCardDraftController({ card, throttleMs: 0 }) as any;
+
+        await ctrl.appendThinkingBlock("Reason: 先检查当前目录");
+        await ctrl.updateAnswer("分步推理过程如下：先计算每个人的效率");
+        await vi.advanceTimersByTimeAsync(0);
+
+        await ctrl.notifyNewAssistantTurn({ discardActiveAnswer: true });
+        await ctrl.updateAnswer("任务预计 3 天完成。");
+        await vi.advanceTimersByTimeAsync(0);
+
+        const rendered = ctrl.getRenderedContent?.() ?? "";
+        expect(rendered).toContain("> Reason: 先检查当前目录");
+        expect(rendered).toContain("任务预计 3 天完成。");
+        expect(rendered).not.toContain("分步推理过程如下：先计算每个人的效率");
     });
 
     it("getLastAnswerContent only tracks answer phase sends", async () => {
@@ -472,7 +491,7 @@ describe("card-draft-controller", () => {
         await vi.advanceTimersByTimeAsync(0);
 
         const rendered = ctrl.getRenderedContent?.() ?? "";
-        const streamed = streamAICardMock.mock.calls.at(-1)?.[1] as string;
+        const streamed = updateAICardBlockListMock.mock.calls.at(-1)?.[1] as string;
         expect(streamed).toContain("> Exec: pwd\n当前工作目录是 /Users/sym/clawd");
         expect(streamed).not.toContain("> Exec: pwd\n\n当前工作目录是 /Users/sym/clawd");
         expect(rendered).toContain("> Exec: pwd\n\n当前工作目录是 /Users/sym/clawd");
@@ -489,7 +508,7 @@ describe("card-draft-controller", () => {
         await ctrl.updateAnswer("当前工作目录是 /Users/sym/clawd");
         await vi.advanceTimersByTimeAsync(0);
 
-        const streamed = streamAICardMock.mock.calls.at(-1)?.[1] as string;
+        const streamed = updateAICardBlockListMock.mock.calls.at(-1)?.[1] as string;
         expect(streamed).toContain(
             "> Reason: 先检查当前目录\n> Exec: pwd\n当前工作目录是 /Users/sym/clawd",
         );
@@ -510,7 +529,7 @@ describe("card-draft-controller", () => {
         await ctrl.updateTool("Exec: printf ok");
         await vi.advanceTimersByTimeAsync(0);
 
-        const streamed = streamAICardMock.mock.calls.at(-1)?.[1] as string;
+        const streamed = updateAICardBlockListMock.mock.calls.at(-1)?.[1] as string;
         expect(streamed).toContain("> Exec: pwd\n> Exec: printf ok");
         expect(streamed).not.toContain("> Exec: pwd\n\n> Exec: printf ok");
     });
@@ -566,7 +585,7 @@ describe("card-draft-controller", () => {
 
     it("flushes the latest answer frame before appending a new tool block", async () => {
         const sent: string[] = [];
-        streamAICardMock.mockImplementation(async (_card, content) => {
+        updateAICardBlockListMock.mockImplementation(async (_card, content) => {
             sent.push(content);
         });
 
@@ -590,7 +609,7 @@ describe("card-draft-controller", () => {
     it("waits for the tool boundary frame before starting the next answer block", async () => {
         const sent: string[] = [];
         let resolveToolFrame!: () => void;
-        streamAICardMock.mockImplementation(async (_card, content) => {
+        updateAICardBlockListMock.mockImplementation(async (_card, content) => {
             sent.push(content);
             if (content.includes("🛠️ Exec: pwd") && !content.includes("阶段2答案")) {
                 await new Promise<void>((r) => { resolveToolFrame = r; });

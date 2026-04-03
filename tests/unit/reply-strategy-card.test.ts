@@ -12,6 +12,9 @@ vi.mock("../../src/card-service", async (importOriginal) => {
         ...actual,
         finishAICard: vi.fn(),
         streamAICard: vi.fn(),
+        updateAICardBlockList: vi.fn(),
+        streamAICardContent: vi.fn(),
+        clearAICardStreamingContent: vi.fn(),
     };
 });
 
@@ -26,7 +29,7 @@ vi.mock("../../src/send-service", async (importOriginal) => {
 });
 
 const finishAICardMock = vi.mocked(cardService.finishAICard);
-const streamAICardMock = vi.mocked(cardService.streamAICard);
+const updateAICardBlockListMock = vi.mocked(cardService.updateAICardBlockList);
 const sendMessageMock = vi.mocked(sendService.sendMessage);
 
 function makeCard(overrides: Partial<AICardInstance> = {}): AICardInstance {
@@ -64,7 +67,8 @@ describe("reply-strategy-card", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         finishAICardMock.mockClear();
-        streamAICardMock.mockClear().mockResolvedValue(undefined);
+        updateAICardBlockListMock.mockClear().mockResolvedValue(undefined);
+        updateAICardBlockListMock.mockClear().mockResolvedValue(undefined);
         sendMessageMock.mockClear().mockResolvedValue({ ok: true });
     });
 
@@ -116,13 +120,13 @@ describe("reply-strategy-card", () => {
 
             await opts.onReasoningStream?.({ text: "Reasoning:\n_Reason: 先检查" });
             await vi.advanceTimersByTimeAsync(0);
-            expect(streamAICardMock).not.toHaveBeenCalled();
+            expect(updateAICardBlockListMock).not.toHaveBeenCalled();
 
             await opts.onReasoningStream?.({ text: "Reasoning:\n_Reason: 先检查当前改动_" });
             await vi.advanceTimersByTimeAsync(0);
 
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
-            expect(streamAICardMock.mock.calls[0]?.[1]).toContain("> Reason: 先检查当前改动");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock.mock.calls[0]?.[1]).toContain("> Reason: 先检查当前改动");
         });
 
         it("buffers unprefixed reasoning stream lines until the final answer boundary", async () => {
@@ -132,13 +136,13 @@ describe("reply-strategy-card", () => {
 
             await opts.onReasoningStream?.({ text: "Reasoning:\n_先检查当前目录_" });
             await vi.advanceTimersByTimeAsync(0);
-            expect(streamAICardMock).not.toHaveBeenCalled();
+            expect(updateAICardBlockListMock).not.toHaveBeenCalled();
 
             await strategy.deliver({ text: "最终答案", mediaUrls: [], kind: "final" });
             await strategy.finalize();
 
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
-            expect(streamAICardMock.mock.calls[0]?.[1]).toContain("> 先检查当前目录");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock.mock.calls[0]?.[1]).toContain("> 先检查当前目录");
         });
 
         it("flushes the latest grown unprefixed reasoning snapshot instead of the first truncated line", async () => {
@@ -149,12 +153,12 @@ describe("reply-strategy-card", () => {
             await opts.onReasoningStream?.({ text: "Reasoning:\n_用户再次_" });
             await opts.onReasoningStream?.({ text: "Reasoning:\n_用户再次要求分步思考后给出结论_" });
             await vi.advanceTimersByTimeAsync(0);
-            expect(streamAICardMock).not.toHaveBeenCalled();
+            expect(updateAICardBlockListMock).not.toHaveBeenCalled();
 
             await strategy.deliver({ text: "最终答案", mediaUrls: [], kind: "final" });
             await strategy.finalize();
 
-            const streamed = streamAICardMock.mock.calls[0]?.[1] ?? "";
+            const streamed = updateAICardBlockListMock.mock.calls[0]?.[1] ?? "";
             expect(streamed).toContain("> 用户再次要求分步思考后给出结论");
             expect(streamed).not.toContain("> 用户再次\n");
         });
@@ -166,14 +170,14 @@ describe("reply-strategy-card", () => {
 
             await opts.onReasoningStream?.({ text: "Reasoning:\n_Reason: 第一轮思考_" });
             await vi.advanceTimersByTimeAsync(0);
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
 
             await opts.onAssistantMessageStart?.();
             await opts.onReasoningStream?.({ text: "Reasoning:\n_Reason: 第二轮新思考_" });
             await vi.advanceTimersByTimeAsync(0);
 
-            expect(streamAICardMock).toHaveBeenCalledTimes(2);
-            expect(streamAICardMock.mock.calls[1]?.[1]).toContain("> Reason: 第二轮新思考");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(2);
+            expect(updateAICardBlockListMock.mock.calls[1]?.[1]).toContain("> Reason: 第二轮新思考");
         });
 
         it("flushes unfinished reasoning before resetting on a new assistant turn", async () => {
@@ -183,13 +187,13 @@ describe("reply-strategy-card", () => {
 
             await opts.onReasoningStream?.({ text: "Reasoning:\n_Reason: 第一轮未封口" });
             await vi.advanceTimersByTimeAsync(0);
-            expect(streamAICardMock).not.toHaveBeenCalled();
+            expect(updateAICardBlockListMock).not.toHaveBeenCalled();
 
             await opts.onAssistantMessageStart?.();
             await vi.advanceTimersByTimeAsync(0);
 
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
-            expect(streamAICardMock.mock.calls[0]?.[1]).toContain("> Reason: 第一轮未封口");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock.mock.calls[0]?.[1]).toContain("> Reason: 第一轮未封口");
         });
     });
 
@@ -276,8 +280,8 @@ describe("reply-strategy-card", () => {
             });
             await vi.advanceTimersByTimeAsync(0);
 
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
-            expect(streamAICardMock.mock.calls[0]?.[1]).toContain("> Reason: 先检查当前目录");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock.mock.calls[0]?.[1]).toContain("> Reason: 先检查当前目录");
         });
 
         it("deliver(block) keeps visible Reasoning text in the answer lane when no explicit reasoning metadata is present", async () => {
@@ -312,9 +316,9 @@ describe("reply-strategy-card", () => {
             });
             await vi.advanceTimersByTimeAsync(0);
 
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
-            expect(streamAICardMock.mock.calls[0]?.[1]).toContain("最终答案");
-            expect(streamAICardMock.mock.calls[0]?.[1]).not.toContain("> 最终答案");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock.mock.calls[0]?.[1]).toContain("最终答案");
+            expect(updateAICardBlockListMock.mock.calls[0]?.[1]).not.toContain("> 最终答案");
         });
 
         it("deliver(block) keeps mixed answer-plus-Reasoning payloads as plain answer text without explicit reasoning metadata", async () => {
@@ -720,11 +724,76 @@ describe("reply-strategy-card", () => {
             });
             await vi.advanceTimersByTimeAsync(0);
 
-            expect(streamAICardMock).toHaveBeenCalled();
-            const streamed = streamAICardMock.mock.calls.at(0)?.[1] ?? "";
+            expect(updateAICardBlockListMock).toHaveBeenCalled();
+            const streamed = updateAICardBlockListMock.mock.calls.at(0)?.[1] ?? "";
             expect(streamed).toContain("分步推理过程如下：");
             expect(streamed).toContain("1. 先计算每个人的效率");
             expect(streamed).not.toContain("> 分步推理过程如下：");
+        });
+
+        it("drops partial-only answer drafts at turn boundaries once explicit reasoning was seen", async () => {
+            const card = makeCard();
+            const strategy = createCardReplyStrategy(buildCtx(card, {
+                disableBlockStreaming: false,
+                config: {
+                    clientId: "id",
+                    clientSecret: "secret",
+                    messageType: "card",
+                    cardRealTimeStream: true,
+                } as any,
+            }));
+            const replyOptions = strategy.getReplyOptions();
+
+            await replyOptions.onPartialReply?.({
+                text: "分步推理过程如下：\n1. 先计算每个人的效率",
+            });
+            await replyOptions.onReasoningStream?.({
+                text: "Reasoning:\n_Reason: 先检查当前目录_",
+            });
+            await replyOptions.onAssistantMessageStart?.();
+            await strategy.deliver({
+                text: "任务预计 3 天完成。",
+                mediaUrls: [],
+                kind: "final",
+            });
+            await strategy.finalize();
+
+            expect(finishAICardMock).toHaveBeenCalledTimes(1);
+            const rendered = finishAICardMock.mock.calls.at(-1)?.[1] ?? "";
+            expect(rendered).toContain("> Reason: 先检查当前目录");
+            expect(rendered).toContain("任务预计 3 天完成。");
+            expect(rendered).not.toContain("分步推理过程如下：");
+        });
+
+        it("finalize drops partial-only answer drafts when explicit reasoning arrives but no stable answer ever does", async () => {
+            const card = makeCard();
+            const strategy = createCardReplyStrategy(buildCtx(card, {
+                disableBlockStreaming: false,
+                config: {
+                    clientId: "id",
+                    clientSecret: "secret",
+                    messageType: "card",
+                    cardRealTimeStream: true,
+                } as any,
+            }));
+            const replyOptions = strategy.getReplyOptions();
+
+            await replyOptions.onPartialReply?.({
+                text: "分步推理过程如下：\n1. 先计算每个人的效率",
+            });
+            await replyOptions.onReasoningStream?.({
+                text: "Reasoning:\n_Reason: 先检查当前目录_",
+            });
+            await strategy.deliver({ text: "pwd", mediaUrls: [], kind: "tool" });
+            await strategy.deliver({ text: "", mediaUrls: [], kind: "final" });
+            await strategy.finalize();
+
+            expect(finishAICardMock).toHaveBeenCalledTimes(1);
+            const rendered = finishAICardMock.mock.calls.at(-1)?.[1] ?? "";
+            expect(rendered).toContain("> Reason: 先检查当前目录");
+            expect(rendered).toContain("> pwd");
+            expect(rendered).toContain("✅ Done");
+            expect(rendered).not.toContain("分步推理过程如下：");
         });
 
         it("keeps markdown-wrapped reasoning-process text as plain answer content when reasoning-on compatibility is disabled", async () => {
@@ -744,8 +813,8 @@ describe("reply-strategy-card", () => {
                 text: "**分步思考过程**：\n\n**第一步：设定基准并计算单人效率**",
             });
             await vi.advanceTimersByTimeAsync(0);
-            expect(streamAICardMock).toHaveBeenCalledTimes(1);
-            expect(streamAICardMock.mock.calls.at(-1)?.[1] ?? "").toContain("**分步思考过程**：");
+            expect(updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+            expect(updateAICardBlockListMock.mock.calls.at(-1)?.[1] ?? "").toContain("**分步思考过程**：");
 
             await strategy.deliver({
                 text: "**分步思考过程**：\n\n**第一步：设定基准并计算单人效率**\n\nReasoning:\n_1. 设总任务量为1_\n_2. 团队总效率为1/3_",
@@ -771,7 +840,7 @@ describe("reply-strategy-card", () => {
             await strategy.deliver({ text: "git diff --stat", mediaUrls: [], kind: "tool" });
             await vi.advanceTimersByTimeAsync(0);
 
-            const rendered = streamAICardMock.mock.calls.at(-1)?.[1] ?? "";
+            const rendered = updateAICardBlockListMock.mock.calls.at(-1)?.[1] ?? "";
             expect(rendered).toContain("> Reason: 先检查当前目录");
             expect(rendered).toContain("> 还在整理发送链路");
             expect(rendered).toContain("> git diff --stat");

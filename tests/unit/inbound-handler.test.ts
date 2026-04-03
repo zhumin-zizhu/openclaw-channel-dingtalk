@@ -15,7 +15,7 @@ const shared = vi.hoisted(() => ({
   createAICardMock: vi.fn(),
   finishAICardMock: vi.fn(),
   resolveQuotedFileMock: vi.fn(),
-  streamAICardMock: vi.fn(),
+  updateAICardBlockListMock: vi.fn(),
   formatContentForCardMock: vi.fn((s: string) => s),
   isCardInTerminalStateMock: vi.fn(),
   acquireSessionLockMock: vi.fn(),
@@ -71,7 +71,8 @@ vi.mock("../../src/card-service", () => ({
   finishAICard: shared.finishAICardMock,
   formatContentForCard: shared.formatContentForCardMock,
   isCardInTerminalState: shared.isCardInTerminalStateMock,
-  streamAICard: shared.streamAICardMock,
+  streamAICard: shared.updateAICardBlockListMock,
+  updateAICardBlockList: shared.updateAICardBlockListMock,
 }));
 
 vi.mock("../../src/session-lock", () => ({
@@ -207,7 +208,8 @@ describe("inbound-handler", () => {
     shared.getUnionIdByStaffIdMock.mockResolvedValue("union_1");
     shared.resolveQuotedFileMock.mockReset();
     shared.resolveQuotedFileMock.mockResolvedValue(null);
-    shared.streamAICardMock.mockReset();
+    shared.updateAICardBlockListMock.mockReset();
+    shared.updateAICardBlockListMock.mockReset();
     shared.isCardInTerminalStateMock.mockReset();
 
     shared.acquireSessionLockMock.mockReset();
@@ -1568,7 +1570,7 @@ describe("inbound-handler", () => {
 
     expect(shared.createAICardMock).toHaveBeenCalledTimes(1);
     expect(shared.finishAICardMock).toHaveBeenCalledTimes(1);
-    expect(shared.streamAICardMock).toHaveBeenCalled();
+    expect(shared.updateAICardBlockListMock).toHaveBeenCalled();
     expect(mockedUpsertInboundMessageContext).toHaveBeenCalled();
   });
 
@@ -5352,10 +5354,9 @@ describe("inbound-handler", () => {
       },
     } as any);
 
-    expect(shared.streamAICardMock).toHaveBeenCalledWith(
+    expect(shared.updateAICardBlockListMock).toHaveBeenCalledWith(
       card,
       expect.stringContaining("thinking pass 1"),
-      false,
       undefined,
     );
   });
@@ -5592,9 +5593,9 @@ describe("inbound-handler", () => {
       },
     } as any);
 
-    expect(shared.streamAICardMock).toHaveBeenCalledTimes(1);
-    expect(shared.streamAICardMock.mock.calls[0][1]).toContain("Reason: 先检查当前目录");
-    expect(shared.streamAICardMock.mock.calls[0][1]).not.toContain("Reasoning:");
+    expect(shared.updateAICardBlockListMock).toHaveBeenCalledTimes(1);
+    expect(shared.updateAICardBlockListMock.mock.calls[0][1]).toContain("Reason: 先检查当前目录");
+    expect(shared.updateAICardBlockListMock.mock.calls[0][1]).not.toContain("Reasoning:");
   });
 
   it("card flow flushes pending reasoning stream before final answer", async () => {
@@ -6049,7 +6050,7 @@ describe("inbound-handler", () => {
     resolveA();
     await promiseA;
 
-    const streamCalls = shared.streamAICardMock.mock.calls;
+    const streamCalls = shared.updateAICardBlockListMock.mock.calls;
     const toolCallA = streamCalls.find((call: any[]) => String(call[1]).includes("tool A"));
     const toolCallB = streamCalls.find((call: any[]) => String(call[1]).includes("tool B"));
     expect(toolCallA).toBeTruthy();
@@ -6099,7 +6100,7 @@ describe("inbound-handler", () => {
       (state: string) => state === "3" || state === "5",
     );
 
-    shared.streamAICardMock.mockImplementation(async () => {
+    shared.updateAICardBlockListMock.mockImplementation(async () => {
       card.state = "5";
       throw new Error("stream api error");
     });
