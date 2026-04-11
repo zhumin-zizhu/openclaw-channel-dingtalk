@@ -97,6 +97,7 @@
 - [ ] 跟进 `#379` 的“上游返回 0 字节时钉钉前端无错误反馈”场景，明确插件侧兜底提示与日志建议（`/verbose on`）边界
 - [ ] 跟进 `#407` 的“card 模式下无回复 + ackReaction 不显示”现场，区分卡片发送链路异常与 thinking 反馈配置问题
 - [ ] 跟进 `#513` 的 session-recovery 卡片冻结问题：明确 timeout/abort 首轮 finalize 后是否允许 resume 或二次 finalize，避免第二轮 embedded run 成功却无法覆盖终态
+  - [ ] [#518 fix(card): deliver markdown fallback when session-recovery updates a finished card](https://github.com/soimy/openclaw-channel-dingtalk/pull/518)（状态：新（CI 通过））
 - [ ] 跟进 `#457` 对 `/reasoning on` 与 `/reasoning stream` 的统一交付方案，确认多轮 assistant turn 与 finalize 边界在 card 模式稳定
   - [ ] [#457 fix(card): unify reasoning-on and reasoning-stream block delivery](https://github.com/soimy/openclaw-channel-dingtalk/pull/457)（状态：审核中）
 - [ ] 复核 `#419` 关闭结论：确认“会话锁外提前建卡/空 Done 卡片”修复是否已入 `main`；若未落地，按最小补丁重提
@@ -108,6 +109,7 @@
 - [#391 能否做到帮我从钉盘找图片/文件并发给我](https://github.com/soimy/openclaw-channel-dingtalk/issues/391)（状态：已关闭（2026-04-08 自动关闭，可重开））
 - [#422 机器人无法发送文件的问题](https://github.com/soimy/openclaw-channel-dingtalk/issues/422)（状态：开启）（Stale）
 - [#430 群聊怎么给openclaw发文件呢?](https://github.com/soimy/openclaw-channel-dingtalk/issues/430)（状态：开启）（Stale）
+- [#482 [Bug] v3.5.1 发送文件到钉钉时文件名显示为 #fileName# 而非实际文件名](https://github.com/soimy/openclaw-channel-dingtalk/issues/482)（状态：开启）
 
 任务：
 - [ ] 核对基础文件发送能力的当前边界
@@ -122,7 +124,7 @@
 - [ ] 将 `#366` 的“文本正常但文件发送失败”场景补充到文件链路最小复现矩阵，并对齐与 `#207/#315` 的同源性判断
 - [ ] 合并 `#270` 的“仅文件占位符”现场日志，补齐“下载成功但提取失败”与“未落盘”两类分流排障步骤
 - [ ] 跟进 `#391` 的钉盘自然语言检索诉求，明确“仅引用直发/文件名模糊搜索/全量语义搜索”分级能力与前置权限
-- [x] 跟进 `#505` 的“转发后文件名变 UUID”回归，确认原始文件名已透传到 `saveMediaBuffer` 与消息上下文链路
+- [x] 跟进 `#505/#482` 的“原始文件名透传 / 文件名显示异常”回归，确认原始文件名已透传到 `saveMediaBuffer` 与消息上下文链路，并区分插件侧透传与钉钉落地文件重命名
   - [x] [#506 fix: forward original filename to saveMediaBuffer (#505)](https://github.com/soimy/openclaw-channel-dingtalk/pull/506)（状态：合并）
 - [x] 跟进 `#397` 的 sandbox 路径兼容缺口，`sendMedia -> uploadMedia` 已补齐 `loadWebMedia` 桥接能力
   - [x] [#398 fix: sandbox sendMedia fails for workspace files](https://github.com/soimy/openclaw-channel-dingtalk/pull/398)（状态：合并）
@@ -130,7 +132,7 @@
   - [x] [#411 fix: 修复引用文件/音频/视频消息下载及附件文本注入](https://github.com/soimy/openclaw-channel-dingtalk/pull/411)（状态：合并）
 - [ ] 补充 `#415` 单聊收文件失败最小复现：区分“单聊附件入站限制”与“提取/落盘链路异常”
 - [ ] 跟进 `#422` 的“模型不会触发文件发送动作”反馈，补充提示词/动作能力边界说明与可复现样例
-- [ ] 跟进 `#430` 群聊文件读取反馈：确认 `#411` 发布版本已覆盖“引用文件 + @Bot”路径并补版本提示
+- [ ] 跟进 `#430` 群聊文件读取反馈：确认 `#411` 发布版本已覆盖“引用文件 + @Bot”路径，并补权限/时效性说明与版本提示
 - [x] 跟进 `#442` 入站附件下载超时阻塞问题，补“第二跳下载 timeout + host 日志”回归
   - [x] [#443 fix: add timeout and host logging for inbound media download](https://github.com/soimy/openclaw-channel-dingtalk/pull/443)（状态：合并）
 - [ ] 跟进 `#452/#454` 的 messaging 分域迁移 PR，确认 `quoted-file-service` 与 `attachment-text-extractor` 搬迁后文件链路回归覆盖完整
@@ -147,6 +149,7 @@
 - [ ] 回归本地图片发送
 - [ ] 回归语音消息发送
 - [ ] 跟进 `#516` 的媒体类型判定回归：区分 `.mp3` 文件附件与语音消息 API 路径，确认 v3.5.3 升级后 `asVoice` / 文件上传分流是否发生误判
+  - [ ] [#517 fix(media): default audio files to attachment instead of voice message](https://github.com/soimy/openclaw-channel-dingtalk/pull/517)（状态：审核中（CI 通过））
 - [ ] 回归入站媒体大小限制覆盖配置
 - [ ] （拟完成，请评估）评估 AI Card 内媒体一体化展示是否值得推进
   - [x] [#181 add mediaMaxMb override for inbound media size limit](https://github.com/soimy/openclaw-channel-dingtalk/pull/181)（状态：合并）
@@ -238,6 +241,7 @@
 - [#354 peer.kind绑定方式不生效](https://github.com/soimy/openclaw-channel-dingtalk/issues/354)（状态：已关闭（2026-04-08 自动关闭，可重开））
 - [#510 群聊白名单格式](https://github.com/soimy/openclaw-channel-dingtalk/issues/510)（状态：已关闭）
 - [#514 [问题反馈]](https://github.com/soimy/openclaw-channel-dingtalk/issues/514)（状态：开启）
+- [#492 可以支持不同的人，通过同一个钉钉机器人，会话绑定到不同的agent里吗？](https://github.com/soimy/openclaw-channel-dingtalk/issues/492)（状态：开启）
 - [#420 某些钉钉账号无法通过私聊发送邮件](https://github.com/soimy/openclaw-channel-dingtalk/issues/420)（状态：开启）（Stale）
 
 任务：
@@ -246,6 +250,7 @@
 - [ ] 优化启动时报错
 - [ ] 补齐文档说明
 - [ ] 跟进 `#514` 的多账号 schema 报错反馈：复核 `accounts.main/default` 形态、`corpId/robotCode` 遗留字段与插件缓存命中旧 schema 的排障路径，并补最小迁移示例
+- [ ] 吸收 `#492` 的“同一机器人按用户路由到不同 agent”案例：补 `bindings.peer.id` / `direct` staffId 示例，并明确这属于框架 routing 能力而非插件新增特性
 - [x] 明确 `session-alias` 与框架 routing bindings 的职责边界（#307）
   - [x] [#307 feat(dingtalk): 支持 owner 控制群共享会话别名](https://github.com/soimy/openclaw-channel-dingtalk/pull/307)（状态：合并）
 - [x] 评估 `@sub-agent` 能力与现有路由模型整合方案（#317）
@@ -371,7 +376,7 @@
 
 ### 12. 流式与响应时延
 相关 Issues：
-- [#414 安装新版本发现在 markdown模式下，消息不按照 block 发送，而是全部完成后发送](https://github.com/soimy/openclaw-channel-dingtalk/issues/414)（状态：开启）（Stale）
+- [#414 安装新版本发现在 markdown模式下，消息不按照 block 发送，而是全部完成后发送](https://github.com/soimy/openclaw-channel-dingtalk/issues/414)（状态：开启）
 - [#416 分步骤回复消息的支持](https://github.com/soimy/openclaw-channel-dingtalk/issues/416)（状态：已关闭（2026-04-10 自动关闭，可重开））
 
 任务：
@@ -396,6 +401,7 @@
 - [#498 telegram-core 模块缺失安装反馈](https://github.com/soimy/openclaw-channel-dingtalk/issues/498)（状态：开启（v3.5.3 已发布；2026-04-09 补充剩余上游 qa-lab / install.runtime 噪音））
 - [#502 v3.5.2 兼容性问题：telegram-core 模块缺失](https://github.com/soimy/openclaw-channel-dingtalk/issues/502)（状态：已关闭（v3.5.3 已发布））
 - [#455 定时任务发送消息到指定群组](https://github.com/soimy/openclaw-channel-dingtalk/issues/455)（状态：开启）（Stale）
+- [#519 v3.5.3: Circular imports in src/ cause RangeError when loaded by openclaw CLI subcommands](https://github.com/soimy/openclaw-channel-dingtalk/issues/519)（状态：开启）
 
 任务：
 - [ ] （拟完成，请评估）补 README 截图
@@ -416,6 +422,7 @@
 - [ ] 增补“主动消息发送”FAQ 与前置条件（`robotCode`、会话预热、机器人类型权限、流式模式差异）（#144/#355）
 - [ ] 增补“定时/主动发送到指定群”说明（`conversationId` 直发 + `displayNameResolution` 能力与版本门槛）（#376/#372）
 - [ ] 合并 `#455` 追问：补充 `cron/jobs.json` 中 `conversationId: group:cid...` 与 `session_key` 两种定向发送写法示例
+- [ ] 跟进 `#519` 的 CLI 子命令加载噪音：拆掉 `src/` 循环依赖，避免 `openclaw mcp set/list` 等子命令因插件初始化递归而刷 `RangeError`
 - [ ] 增补“Markdown 表格渲染差异”说明（客户端差异 + 自定义机器人 vs 应用机器人）（#192/#358）
 - [ ] 补充 `gatewayToken` 缺失/错误时的配置排障指引与默认回退行为说明（#370）
 - [ ] （拟完成，请评估）跟进 `#402/#404/#405` 安装失败闭环：补版本兼容矩阵与升级指引，并同步已由 `#406` 修复的范围边界
